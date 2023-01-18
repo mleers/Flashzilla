@@ -26,6 +26,7 @@ struct ContentView: View {
     @State private var isActive = true
     
     @State private var showingEditScreen = false
+    @State var isWrong = false
     
     var body: some View {
         ZStack {
@@ -41,15 +42,15 @@ struct ContentView: View {
                     .background(.black.opacity(0.75))
                     .clipShape(Capsule())
                 ZStack {
-                    ForEach(0..<cards.count, id: \.self) { index in
-                        CardView(card: cards[index]) {
+                    ForEach(cards, id: \.id) { card in
+                        CardView(card: card, isWrong: $isWrong) {
                             withAnimation {
-                                removeCard(at: index)
+                                removeCard(at: getCardIndex(card: card), card: card)
                             }
                         }
-                        .stacked(at: index, in: cards.count)
-                        .allowsHitTesting(index == cards.count - 1)
-                        .accessibilityHidden(index < cards.count - 1)
+                        .stacked(at: getCardIndex(card: card), in: cards.count)
+                        .allowsHitTesting(getCardIndex(card: card) == cards.count - 1)
+                        .accessibilityHidden(getCardIndex(card: card) < cards.count - 1)
                     }
                 }
                 .allowsHitTesting(timeRemaining > 0)
@@ -90,7 +91,7 @@ struct ContentView: View {
                     HStack {
                         Button {
                             withAnimation {
-                                removeCard(at: cards.count - 1)
+                                removeCard(at: cards.count - 1, card: cards[cards.count - 1])
                             }
                         } label: {
                             Image(systemName: "xmark.circle")
@@ -105,7 +106,7 @@ struct ContentView: View {
 
                         Button {
                             withAnimation {
-                                removeCard(at: cards.count - 1)
+                                removeCard(at: cards.count - 1, card: cards[cards.count - 1])
                             }
                         } label: {
                             Image(systemName: "checkmark.circle")
@@ -151,15 +152,34 @@ struct ContentView: View {
         }
     }
     
-    func removeCard(at index: Int) {
-        guard index >= 0 else { return
-            
+    func getCardIndex(card: Card) -> Int {
+        for i in 0...cards.count {
+            if cards[i].id == card.id {
+                return i
+            }
         }
-        cards.remove(at: index)
+
+        return -1
+    }
+    
+    func removeCard(at index: Int, card: Card) {
+        guard index >= 0 else { return }
+
+        print("In removeCard, isWrong: \(isWrong)")
+
         
+        cards.remove(at: index)
+
+        if isWrong {
+            let wrongCard = Card(id: UUID(), prompt: card.prompt, answer: card.answer)
+            cards.insert(wrongCard, at: 0)
+        }
+
         if cards.isEmpty {
             isActive = false
         }
+
+        print("Card count: \(cards.count)")
     }
     
     func resetCards() {
